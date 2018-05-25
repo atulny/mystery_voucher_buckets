@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Bucket Assignment</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script>
+  
+  </script>
+  <style> 
+	.bucket-items table{
+		border-collapse: separate;width:100%; 
+	}
+	 
+	.bucket-item{ 
+		border-bottom:1px solid #cccc;  
+	}
+	.bucket-item:nth-child(even){
+	  background-color: #f6f6f6;
+	}
+	.bucket-item-perc,.bucket-item-dollar{ 
+		width:40%;padding: 10px;white-space:nowrap;
+	}
+    .bucket-item-ops{ 
+        width:10%;white-space:nowrap;
+    }
+   .bucket-item-op{ 
+      display: block;
+      border:1px solid #999;
+	  font-size:16px;
+      padding:1px 2px;
+      margin:2px; box-radius:2px;
+      line-height:10px;
+      width: 1em;;
+      cursor:pointer;
+	}
+ 
+	.bucket-item-op:hover{
+	  font-weight:bold;  
+	}
+	.bucket-item:first-child .bucket-item-op-rem{
+	  display:none; 
+	}
+	 
+	.bucket-item-op-rem {
+		padding: 0 2px 1px 2px;
+	}
+	.bucket-item  input { width:3.5em;text-align:center;margin:0 2px;}
+	.bucket-items th,.bucket-items td{text-align:center;}
+	.bucket-item-perc-tot{background-color:#fcfcfc;}
+   
+    
+</style>
+<script>
+/*load the initial datav from DB*/
+var DBvalues=[{percentage:15,value:50},{percentage:35,value:10},{percentage:50,value:5}]
+
+/* this is the method to be bound to MVC for saving the data*/
+function mvc_bound_save(data){
+ alert(JSON.stringify(data,null,1))
+}
+
+function init(){
+  var totperc=0,el=document.querySelector(".bucket-items"),
+  dialog=el.parentNode.parentNode,
+  messageel=el.querySelector(".bucket-error"),
+  formel=el.querySelector("form") ,
+  assignbutton=dialog.querySelector(".save-values")
+  el.addEventListener("click",function(ev){
+      var row=ev.target.parentNode.parentNode
+      if (row && row.classList.contains("bucket-item")){
+           if (ev.target.classList.contains("bucket-item-op-add")){additem(ev,row)} 
+      	   else if (ev.target.classList.contains("bucket-item-op-rem")){removeitem(ev,row)} 
+      }
+   });
+   assignbutton.addEventListener("click",save);
+   dialog.querySelector(".clear-values").addEventListener("click",clear); 
+   formel.addEventListener("input",compute_total);
+   additem();additem();
+   apply_values(DBvalues);
+   function removeitem(ev,row){
+      row && row.parentNode && row.parentNode.children.length >1 && row.parentNode.removeChild(row)
+      compute_total()
+    }
+   function get_rows(){
+	   return el.querySelectorAll(".bucket-item")
+	}
+  function compute_total( ){
+      var  msg='',klasstoadd=''
+	  totperc=0
+      get_rows().forEach(function(row){
+	      var ip1=row.querySelector(".bucket-item-perc input"),ip2=row.querySelector(".bucket-item-dollar input")
+		  if (ip2.value){
+             totperc=totperc+(Number(ip1.value)||0)
+		 }
+      }); 
+	  messageel.classList.remove("bg-danger")
+	  messageel.classList.remove("bg-warning")
+	  if (totperc==100){
+		assignbutton.classList.remove("disabled")
+	  } else{
+		assignbutton.classList.add("disabled")
+		  if (totperc>100){
+			klasstoadd="bg-danger"
+			
+			msg="The total percentage("+totperc+"%) of valid entries must not exceed 100%"
+		  } else  {
+		    klasstoadd="bg-warning"
+			msg="The total percentage("+totperc+"%) of valid entries  should be 100%"
+		  } 
+		  messageel.classList.add(klasstoadd)
+	  }
+	  messageel.innerHTML=msg
+  }
+    
+  function additem(ev,row){
+     row=row||get_rows()[0]
+     var newrow=row.cloneNode(true)
+    newrow=row.parentNode.insertBefore(newrow,row.nextElementSibling)
+    newrow.querySelectorAll("input").forEach(function(ip){ip.value=""})
+	return newrow
+  }
+  function apply_values(data ){
+    if (data && data.length){
+		var rows=[].slice.call(get_rows())
+    
+		data.forEach(function(d,i){
+			 var row=rows.shift()||additem()
+			 if (!row){return}
+			 var ip1=row.querySelector(".bucket-item-perc input"),ip2=row.querySelector(".bucket-item-dollar input")
+			 ip1.value=d.percentage
+			 ip2.value=d.value
+		})
+	 }
+  	compute_total()
+  }
+  function save(ev ){
+    if (ev.target.classList.contains("disabled")){return}
+  	var data=[]
+   	get_rows().forEach(function(row){
+      var perc,val,ip1=row.querySelector(".bucket-item-perc input"),ip2=row.querySelector(".bucket-item-dollar input")
+      if (ip1 && ip2 && ip1.value && ip2.value){
+          data.push({percentage:ip1.value,value:ip2.value})
+      }
+   }); 
+	mvc_bound_save(data)
+   
+  }
+  function clear(ev ){
+   formel.reset() 
+   compute_total()
+  }
+
+}
+
+
+</script>
+</head>
+<body onload="init()">
+
+	<div class="container">
+	  <!-- Trigger the modal with a button -->
+	  <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal">Buckets </button>
+
+	  <!-- Modal -->
+	  <div class="modal fade" data-backdrop="static" id="myModal" role="dialog">
+		<div class="modal-dialog modal-sm">
+		
+		  <!-- Modal content-->
+		  <div class="modal-content">
+				<div class="modal-header">
+				  <button type="button" class="close" data-dismiss="modal">&times;</button>
+				  <h4 class="modal-title">Bucket Allocation</h4>
+				</div>
+				<div class="modal-body">
+					<div  class="bucket-items noselect">
+				 
+						<form>
+					  
+							<table>
+								  <thead>
+									<tr><th>Percentage</th><th>Value</th><th>   </th></tr>
+								  </thead>
+								   
+								 <tbody> 
+									<tr class="bucket-item">
+									<td class="bucket-item-perc"><input type="number" min="1" max="100" step="1"/>%</td>
+									<td class="bucket-item-dollar">$<input type="number" min="1" max="500" step=".5"/></td>
+									<td class="bucket-item-ops">
+									  <span class="bucket-item-op bucket-item-op-rem bg-danger">-</span>
+									  <span class="bucket-item-op bucket-item-op-add bg-success">+</span>
+									</td>
+									</tr>
+								</tbody>
+							</table>
+							<div class="bucket-error bg-danger"></div>
+						</form>
+				 
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button class="btn btn-default  btn-primary save-values disabled" type="button">Assign</button>
+					<button type="button" class="btn btn-default clear-values" >Clear</button> 
+					<button type="button" class="btn btn-default btn-danger" data-dismiss="modal">Cancel</button> 
+				</div>
+		  </div>
+		  
+		</div>
+	  </div>
+	  
+	</div>
+
+</body>
+</html>
